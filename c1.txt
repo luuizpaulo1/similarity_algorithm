@@ -1,0 +1,7 @@
+def calcular(x, y):
+    if x == y:
+        return x
+    else:
+        while x > 0:
+            x = x + 1
+        return y

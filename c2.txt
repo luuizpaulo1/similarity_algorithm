@@ -1,0 +1,5 @@
+def calcular(x, z):
+    if x == z:
+        return x
+    else:
+        return z
