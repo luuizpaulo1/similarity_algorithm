@@ -3,6 +3,7 @@
 module Main where
 
 import qualified Data.Map.Strict as M
+import qualified Data.Set as S
 import Data.List (sortOn)
 import Data.Ord (Down(..))
 import System.Environment (getArgs)
@@ -17,11 +18,10 @@ tokenize seps str = words [ if c `elem` seps then ' ' else c | c <- str ]
 -- | Computa as frequências ponderadas das palavras.
 -- Se a palavra for reservada, seu peso é multiplicado por 2.
 computeFrequencies :: [String] -> [String] -> M.Map String Double
-computeFrequencies resWords tokens =
-  let rawCounts = M.fromListWith (+) [(t, 1.0) | t <- tokens]
-      resSet = M.fromList [(w, True) | w <- resWords]
-      weight w = if w `M.member` resSet then 2.0 else 1.0
-  in M.mapWithKey (\w count -> count * weight w) rawCounts
+computeFrequencies resWords tokens = M.fromListWith (+) [ (t, weight t) | t <- tokens ]
+  where
+    resSet = S.fromList resWords
+    weight w = if w `S.member` resSet then 2.0 else 1.0
 
 main :: IO ()
 main = do
