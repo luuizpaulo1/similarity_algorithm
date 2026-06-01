@@ -17,6 +17,49 @@ computeFrequencies resWords tokens = M.fromListWith (+) [ (t, weight t) | t <- t
     resSet = S.fromList resWords
     weight w = if w `S.member` resSet then 2.0 else 1.0
 
+analyzeFiles :: String -> String -> String -> String -> ([(String, Double)], Double, Double, Double)
+analyzeFiles resContent sepContent c1Content c2Content =
+  let resWords = words resContent
+      seps     = filter (`notElem` " \t\n\r") sepContent
+
+      tokens1  = tokenize seps c1Content
+      tokens2  = tokenize seps c2Content
+
+      f1Map    = computeFrequencies resWords tokens1
+      f2Map    = computeFrequencies resWords tokens2
+
+      totalF1  = sum (M.elems f1Map)
+
+      calculateM w f1 =
+        let f2 = M.findWithDefault 0.0 w f2Map
+            diff = abs (f1 - f2)
+            maxF = max f1 f2
+        in if maxF > 0 && (diff / maxF <= 0.10) then f1 else 0.0
+
+      mValue     = sum [calculateM w f1 | (w, f1) <- M.toList f1Map]
+      similarity = if totalF1 == 0 then 0.0 else mValue / totalF1
+      c1Report   = sortOn (\(w, f) -> (Down f, w)) (M.toList f1Map)
+  in (c1Report, totalF1, mValue, similarity)
+
+
+printReport :: ([(String, Double)], Double, Double, Double) -> IO ()
+printReport (c1Report, totalF1, mValue, similarity) = do
+  putStrLn "\n========================================================"
+  putStrLn "       RELATÓRIO DE FREQUÊNCIAS (CÓDIGO 1 - c1)         "
+  putStrLn "========================================================"
+  printf "%-25s | %-20s\n" "Palavra" "Frequência Ponderada"
+  putStrLn "--------------------------------------------------------"
+  mapM_ (\(w, f) -> printf "%-25s | %-20.1f\n" w f) c1Report
+  putStrLn "--------------------------------------------------------"
+
+  putStrLn "\n========================================================"
+  putStrLn "                 MÉTRICAS DE SIMILARIDADE               "
+  putStrLn "========================================================"
+  printf "Soma total de f1 (denominador): %.1f\n" totalF1
+  printf "Valor acumulado de m:           %.1f\n" mValue
+  printf "Índice de Similaridade:         %.4f (%.2f%%)\n" similarity (similarity * 100)
+  putStrLn "========================================================\n"
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -33,47 +76,6 @@ main = do
       c1Content  <- readFile c1Path
       c2Content  <- readFile c2Path
 
-      let resWords = words resContent
-          seps     = filter (`notElem` " \t\n\r") sepContent
+      let results = analyzeFiles resContent sepContent c1Content c2Content
 
-      let tokens1 = tokenize seps c1Content
-          tokens2 = tokenize seps c2Content
-
-      let f1Map = computeFrequencies resWords tokens1
-          f2Map = computeFrequencies resWords tokens2
-
-      -- Soma total de f1 para o denominador da similaridade
-      let totalF1 = sum (M.elems f1Map)
-
-      -- Regra de decisão para o cálculo acumulado de m
-      -- Considera-se aceitável uma diferença de ATÉ 10% em relação ao maior valor absoluto entre f1 e f2.
-      let calculateM w f1 =
-            let f2 = M.findWithDefault 0.0 w f2Map
-                diff = abs (f1 - f2)
-                maxF = max f1 f2
-            in if maxF > 0 && (diff / maxF <= 0.10)
-               then f1
-               else 0.0
-
-      -- Somatório de m baseado nas chaves existentes em c1
-      let mValue = sum [calculateM w f1 | (w, f1) <- M.toList f1Map]
-          similarity = if totalF1 == 0 then 0.0 else mValue / totalF1
-
-      -- Ordenação do relatório de c1: Frequência decrescente, desempate por ordem lexicográfica
-      let c1Report = sortOn (\(w, f) -> (Down f, w)) (M.toList f1Map)
-
-      putStrLn "\n========================================================"
-      putStrLn "       RELATÓRIO DE FREQUÊNCIAS (CÓDIGO 1 - c1)         "
-      putStrLn "========================================================"
-      printf "%-25s | %-20s\n" "Palavra" "Frequência Ponderada"
-      putStrLn "--------------------------------------------------------"
-      mapM_ (\(w, f) -> printf "%-25s | %-20.1f\n" w f) c1Report
-      putStrLn "--------------------------------------------------------"
-
-      putStrLn "\n========================================================"
-      putStrLn "                 MÉTRICAS DE SIMILARIDADE               "
-      putStrLn "========================================================"
-      printf "Soma total de f1 (denominador): %.1f\n" totalF1
-      printf "Valor acumulado de m:           %.1f\n" mValue
-      printf "Índice de Similaridade:         %.4f (%.2f%%)\n" similarity (similarity * 100)
-      putStrLn "========================================================\n"
+      printReport results
