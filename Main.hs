@@ -12,12 +12,7 @@ import Text.Printf (printf)
 -- | Divide uma string em tokens baseando-se em uma lista de caracteres separadores
 -- e nos caracteres de espaço em branco padrão (\s, \t, \n, \r).
 tokenize :: String -> String -> [String]
-tokenize seps str = filter (not . null) $ wordsWhen (`elem` (seps ++ " \t\n\r")) str
-  where
-    wordsWhen :: (Char -> Bool) -> String -> [String]
-    wordsWhen p s = case dropWhile p s of
-      "" -> []
-      s' -> let (w, s'') = break p s' in w : wordsWhen p s''
+tokenize seps str = words [ if c `elem` seps then ' ' else c | c <- str ]
 
 -- | Computa as frequências ponderadas das palavras.
 -- Se a palavra for reservada, seu peso é multiplicado por 2.
