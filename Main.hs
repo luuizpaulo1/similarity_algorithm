@@ -1,5 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
-
 module Main where
 
 import qualified Data.Map.Strict as M
@@ -10,13 +8,9 @@ import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import Text.Printf (printf)
 
--- | Divide uma string em tokens baseando-se em uma lista de caracteres separadores
--- e nos caracteres de espaço em branco padrão (\s, \t, \n, \r).
 tokenize :: String -> String -> [String]
 tokenize seps str = words [ if c `elem` seps then ' ' else c | c <- str ]
 
--- | Computa as frequências ponderadas das palavras.
--- Se a palavra for reservada, seu peso é multiplicado por 2.
 computeFrequencies :: [String] -> [String] -> M.Map String Double
 computeFrequencies resWords tokens = M.fromListWith (+) [ (t, weight t) | t <- tokens ]
   where
@@ -34,22 +28,17 @@ main = do
     else do
       let [resPath, sepPath, c1Path, c2Path] = args
 
-      -- Leitura dos arquivos de entrada
       resContent <- readFile resPath
       sepContent <- readFile sepPath
       c1Content  <- readFile c1Path
       c2Content  <- readFile c2Path
 
-      -- Processamento preliminar das palavras reservadas e separadores
-      -- Nota: Linhas/espaços dentro do arquivo de separadores são ignorados como conteúdo útil.
       let resWords = words resContent
           seps     = filter (`notElem` " \t\n\r") sepContent
 
-      -- Tokenização dos códigos fonte
       let tokens1 = tokenize seps c1Content
           tokens2 = tokenize seps c2Content
 
-      -- Cálculo das frequências fi (f1 e f2)
       let f1Map = computeFrequencies resWords tokens1
           f2Map = computeFrequencies resWords tokens2
 
@@ -73,7 +62,6 @@ main = do
       -- Ordenação do relatório de c1: Frequência decrescente, desempate por ordem lexicográfica
       let c1Report = sortOn (\(w, f) -> (Down f, w)) (M.toList f1Map)
 
-      -- Impressão do Relatório de Frequências de c1
       putStrLn "\n========================================================"
       putStrLn "       RELATÓRIO DE FREQUÊNCIAS (CÓDIGO 1 - c1)         "
       putStrLn "========================================================"
@@ -82,7 +70,6 @@ main = do
       mapM_ (\(w, f) -> printf "%-25s | %-20.1f\n" w f) c1Report
       putStrLn "--------------------------------------------------------"
 
-      -- Impressão dos Resultados Métricos
       putStrLn "\n========================================================"
       putStrLn "                 MÉTRICAS DE SIMILARIDADE               "
       putStrLn "========================================================"
